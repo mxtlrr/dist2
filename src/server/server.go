@@ -20,9 +20,46 @@ var (
 )
 
 func main() {
+	// Handlers
 	http.HandleFunc("/register", registerClient)
+	http.HandleFunc("/data", data)						// Recieving data from the client
+
 	log.Println("Server running on port 8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+/* The client will send a variety of messages to the server,
+ * telling it if/when it is ready, and data from various tasks.
+ * You can read the architecture about it. Once the client
+ * configures itself and registers itself on the server, it sends
+ * a RDY to the server, i.e.
+
+ *  /data?type="RDY", then the server will tell it what to do*/
+func data(w http.ResponseWriter, r *http.Request){
+	// Check if the IP address actually corresponds to a client
+	var (
+			ipAddr      string = TruncIPAddr(r.RemoteAddr)
+			port        string = strings.Split(r.RemoteAddr, ":")[1]
+			validClient bool   = false
+		)
+	for i := range clients {
+		if clients[i].clientAddress == ipAddr && clients[i].clientPort == port {
+			validClient = true
+			break
+		}
+	}
+
+	if validClient == false {
+		io.WriteString(w, "Sorry, you aren't registered. Please register yourself before continuing. Goodbye.")
+		return
+	}
+
+	log.Println("Incoming data / request from client!")
+	query, _ := url.ParseQuery(r.URL.RawQuery)
+	d_type := query.Get("type")
+
+	log.Printf("Got \"%s\" as the type.", d_type)
+	// TODO: do something with type given to server.
 }
 
 
@@ -53,4 +90,6 @@ func registerClient(w http.ResponseWriter, r *http.Request){
 
 	log.Printf("Finished registeration of client. There are now %d clients in the system\n", len(clients))
 	log.Println(z)
+
+	io.WriteString(w, "OK")
 }
