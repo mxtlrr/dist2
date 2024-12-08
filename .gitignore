@@ -1,0 +1,8 @@
+*.exe
+bin/
+obj/
+
+
+.vscode/
+*swp
+
