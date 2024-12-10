@@ -3,16 +3,16 @@ package main
 import (
 	"io"
 	"log"
-	"strconv"
-	"strings"
 	"net/http"
 	"net/url"
+	"strconv"
+	"strings"
 )
 
 type ClientData struct {
-	clientAddress		string			// We'll have to connect to the client's HTTP server to send data
-	clientPort			string			// Connect to this port on the HTTP server.
-	threadCount			int					// Amount of threads
+	clientAddress string // We'll have to connect to the client's HTTP server to send data
+	clientPort    string // Connect to this port on the HTTP server.
+	threadCount   int    // Amount of threads
 }
 
 var (
@@ -22,26 +22,30 @@ var (
 func main() {
 	// Handlers
 	http.HandleFunc("/register", registerClient)
-	http.HandleFunc("/data", data)						// Recieving data from the client
+	http.HandleFunc("/data", data) // Recieving data from the client
 
 	log.Println("Server running on port 8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
-/* The client will send a variety of messages to the server,
- * telling it if/when it is ready, and data from various tasks.
- * You can read the architecture about it. Once the client
- * configures itself and registers itself on the server, it sends
- * a RDY to the server, i.e.
+/*
+The client will send a variety of messages to the server,
+* telling it if/when it is ready, and data from various tasks.
+* You can read the architecture about it. Once the client
+* configures itself and registers itself on the server, it sends
+* a RDY to the server, i.e.
 
- *  /data?type="RDY", then the server will tell it what to do*/
-func data(w http.ResponseWriter, r *http.Request){
+*  /data?type="RDY", then the server will tell it what to do
+*/
+func data(w http.ResponseWriter, r *http.Request) {
 	// Check if the IP address actually corresponds to a client
+	ipAddrTmp := strings.Split(r.RemoteAddr, ":")
 	var (
-			ipAddr      string = TruncIPAddr(r.RemoteAddr)
-			port        string = strings.Split(r.RemoteAddr, ":")[1]
-			validClient bool   = false
-		)
+		ipAddr      string = ipAddrTmp[0]
+		port        string = ipAddrTmp[1]
+		validClient bool   = false
+	)
+
 	for i := range clients {
 		if clients[i].clientAddress == ipAddr && clients[i].clientPort == port {
 			validClient = true
@@ -62,13 +66,8 @@ func data(w http.ResponseWriter, r *http.Request){
 	// TODO: do something with type given to server.
 }
 
-
-// Remove the port
-func TruncIPAddr(fullStr string) string {
-	return strings.Split(fullStr, ":")[0]
-}
-
-func registerClient(w http.ResponseWriter, r *http.Request){
+func registerClient(w http.ResponseWriter, r *http.Request) {
+	ipAddrTmp := strings.Split(r.RemoteAddr, ":")
 	log.Println("Recieving client registration")
 
 	// Get threads
@@ -82,14 +81,15 @@ func registerClient(w http.ResponseWriter, r *http.Request){
 	}
 
 	// Server stuff
-	log.Printf("Threads: %d | IP Address: %s\n", threads, TruncIPAddr(r.RemoteAddr));
+	log.Printf("Threads: %d | IP Address: %s\n", threads, ipAddrTmp[0])
 
 	// Add client data to the clients
-	var z ClientData = ClientData{TruncIPAddr(r.RemoteAddr), strings.Split(r.RemoteAddr, ":")[1], threads}
+	var z ClientData = ClientData{ipAddrTmp[0], ipAddrTmp[1], threads}
 	clients = append(clients, z)
 
 	log.Printf("Finished registeration of client. There are now %d clients in the system\n", len(clients))
 	log.Println(z)
 
+	// Make sure client acknowledges.
 	io.WriteString(w, "OK")
 }
