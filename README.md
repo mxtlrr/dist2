@@ -55,17 +55,26 @@ You can view the diagram in the [`arch`](./arch/graph.md) directory
 - [X] Send information to server about client information
 - [X] Server acknowledges and waits for client to be ready to send info
 	- [X] Tells the client to compute $n$ digits at offset $o$.
-	- [ ] Prioritizes clients with more that $j$ threads
+	- [ ] Prioritizes clients with more than $j$ threads
 	- [X] Client can both
 		- [X] Compute $\sqrt{2}$ with decent precision, enough for what
 		- [X] Send the data back to the server, which stores it.
-- [ ] Implement checking
-	- [ ] Server-side signal
-	- [ ] Client-side
+- [X] Implement checking
+	- [X] Server-side signal
+	- [X] Client-side
 - [ ] Optional stuff
 	- [ ] Send a terminate signal to all clients once a desired precision
 is wanted
 
+## General Roadmap
+- [ ] Implement the entire architecture
+- [ ] Add customization
+	- [ ] Client (autoconnect)
+	- [ ] Server (specific port to open, max precision, etc)
+- [ ] Potentially rewrite the client in a non-interpreted language.
+	- Top choices are Golang and C++.
+	- Unless Python doesn't perform moderately fast, then this is
+	unnecessary
 
 ## Notes
 1. "Weaker" clients mean that they don't have as much computing power. If client $A$ has 4 threads, and client $B$ has
