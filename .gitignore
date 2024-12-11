@@ -6,3 +6,4 @@ obj/
 .vscode/
 *swp
 
+__pycache__/

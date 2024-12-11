@@ -18,7 +18,7 @@ more work to clients with more computational strength.
 The server and client are written in different programming languages,
 meaning you'll need to get multiple dependencies:
 - Golang (server)
-- ~~G++ (client)~~
+- Python (client)
 
 ## Sever
 As stated above, the server is written in Golang. You can compile it with
@@ -26,14 +26,10 @@ As stated above, the server is written in Golang. You can compile it with
 go build server/server.go
 ```
 
-You'll see either `server` or `server.exe`. This is what you run to start
-your own dist2 instance.
-
 ## Client
-~~The client is written in C++. Run `make` to compile it. You'll need a
-64-bit version of your C++ compiler.~~
+The client is written in Python. Just run `python client.py`.
 
-This is subject to change.
+**WARNING**: Linux only
 
 # Usage
 TODO
@@ -46,14 +42,30 @@ TODO
 2. The server will acknowledge this, and waits for the client to send a RDY
 message.
 3. Upon the RDY message, the server sends a data packet to the client, to compute $n$ digits at an offset $o$, which starts at 0 digits past the decimal points.
-    - On other clients, it will tell the client to compute $k+n$ digits, aka, computing digits sequentially.
+	- On other clients, it will tell the client to compute $k+n$ digits, aka, computing digits sequentially.
 4. Once computation is completed, the client sends a DONE message. Server
 will acknowledge it and make other, weaker, clients validate the computed value
-    - This is simply checking the first two digits of the computed amount by recomputation
-    - If something goes wrong, i.e. discrepancy, then the client recomputes the value and sends it back, with a FIXCOMP message.
+	- This is simply checking the first two digits of the computed amount by recomputation
+	- If something goes wrong, i.e. discrepancy, then the client recomputes the value and sends it back, with a FIXCOMP message.
 5. After all clients send a FIXCOMP message, the server combines the results and the cycle repeats.
 
 You can view the diagram in the [`arch`](./arch/graph.md) directory
+
+## Architecture Implementation Roadmap
+- [X] Send information to server about client information
+- [X] Server acknowledges and waits for client to be ready to send info
+	- [X] Tells the client to compute $n$ digits at offset $o$.
+	- [ ] Prioritizes clients with more that $j$ threads
+	- [X] Client can both
+		- [X] Compute $\sqrt{2}$ with decent precision, enough for what
+		- [X] Send the data back to the server, which stores it.
+- [ ] Implement checking
+	- [ ] Server-side signal
+	- [ ] Client-side
+- [ ] Optional stuff
+	- [ ] Send a terminate signal to all clients once a desired precision
+is wanted
+
 
 ## Notes
 1. "Weaker" clients mean that they don't have as much computing power. If client $A$ has 4 threads, and client $B$ has
