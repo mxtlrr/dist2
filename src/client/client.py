@@ -1,12 +1,13 @@
 import http.client, subprocess
+from dist2math import MathFunc
+
+
 threads = int(subprocess.check_output(['nproc']).decode('utf-8').replace("\n",""))
 
-
 # Stuff to send to server to update status
-
 READY = 0
 BUSY  = 1
-
+accuracy = 200
 
 class Client:
   def __init__(self):
@@ -37,18 +38,27 @@ print(f"We are client {client_id}")
 # Set ourselves as ready to recieve
 Client.SetStatus(connection, READY, client_id)
 
-for i in range(5):
+for i in range(1):
   val = Client.sendReq(connection, "GET", f"/data?client_id={client_id}&type=request").split(" ")
   instruction = val[0]
   match instruction:
     case "COMP":
+      dig_count = int(val[1])
+      offset    = int(val[3])
+      print(f"Digit count: {dig_count} | Offset: {offset}")
       # Set ourselves as busy
       Client.SetStatus(connection, BUSY, client_id)
-      # Go compute something
-      print("I am computing.")
 
 
-      zz = Client.sendReq(connection, "GET", f"/data?client_id={client_id}&data=VERYSPECIFICTHING&type=data")
+      # Each iteration improves the approximation, roughly doubling the number of correct digits...
+      # it can be modeled with f(x) = 1.2084*(1.8146^x)-1.124, R^2 = 0.9995, so at
+      # accuracy = 25, we'd get ~3.56 million correct digits, though this is just a model to fit the
+      # data, and may not be correct.
+      # To keep up with this, we'll increment one after each iteration
+      value = MathFunc.GetOffset(MathFunc.CompSqrt2(accuracy), offset, dig_count)
+      accuracy += 1 # f(26) = ~6,467,132
+
+      zz = Client.sendReq(connection, "GET", f"/data?client_id={client_id}&data={str(value)}&type=data")
       Client.SetStatus(connection, READY, client_id)
 
 
