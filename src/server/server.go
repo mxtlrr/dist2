@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -17,11 +18,22 @@ type ClientData struct {
 	status        int    // Client status
 }
 
+const (
+	digits int = 20
+)
+
+type SortedClientThreads struct {
+	clientId    int
+	threadCount int
+}
+
 var (
 	clients          []ClientData
 	offset           int64 // Integer offset for computation of digits
 	digitsCalculated strings.Builder
-	digits           int = 20
+
+	// Priority client IDs
+	priorityIDs []SortedClientThreads
 )
 
 func main() {
@@ -42,6 +54,24 @@ func setstatus(w http.ResponseWriter, r *http.Request) {
 	clients[client_id].status = status
 }
 
+func validateClient(c ClientData, ipAddrPort []string) bool {
+	return c.clientAddress == ipAddrPort[0] && c.clientPort == ipAddrPort[1]
+}
+
+func sortThreadIds() []SortedClientThreads {
+	var z []SortedClientThreads
+
+	for i := range clients {
+		z = append(z, SortedClientThreads{i, clients[i].threadCount})
+	}
+
+	sort.Slice(z, func(i, j int) bool {
+		return z[i].threadCount > z[j].threadCount
+	})
+
+	return z
+}
+
 /*
 The client will send a variety of messages to the server,
 * telling it if/when it is ready, and data from various tasks.
@@ -54,22 +84,11 @@ The client will send a variety of messages to the server,
 func data(w http.ResponseWriter, r *http.Request) {
 	// Check if the IP address actually corresponds to a client
 	ipAddrTmp := strings.Split(r.RemoteAddr, ":")
-	var (
-		ipAddr      string = ipAddrTmp[0]
-		port        string = ipAddrTmp[1]
-		validClient bool   = false
-	)
-
 	for i := range clients {
-		if clients[i].clientAddress == ipAddr && clients[i].clientPort == port {
-			validClient = true
-			break
+		if !validateClient(clients[i], ipAddrTmp) {
+			io.WriteString(w, "Sorry, you aren't registered. Please register yourself before continuing. Goodbye.")
+			return
 		}
-	}
-
-	if validClient == false {
-		io.WriteString(w, "Sorry, you aren't registered. Please register yourself before continuing. Goodbye.")
-		return
 	}
 
 	log.Println("Incoming data / request from client!")
@@ -79,15 +98,49 @@ func data(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println(query)
 	log.Printf("Got \"%s\" as the type.", d_type)
+
 	// TODO: do something with type given to server.
 
 	if d_type == "request" {
 		switch clients[client_id].status {
 		// Ready
 		case 0:
-			// Compute 20 digits of some number
-			io.WriteString(w, fmt.Sprintf("COMP %d OFFSET %d", digits, offset))
-			offset += 20
+			// Check if priority.
+			if len(clients) >= 6 {
+				// Only do this if we have enough. If not enough then just
+				// prioritize computation
+
+				// Find the index of the current client id
+				var curr_index int = 0
+				for z := range priorityIDs {
+					if priorityIDs[z].clientId == client_id {
+						curr_index = z
+						break
+					}
+				}
+
+				// If we're in the lower half, then we should prioritize
+				// checking the previous values.
+				if curr_index > (len(clients) / 2) {
+					// We only want to check three digits, to prevent double
+					// computation.
+
+					// Check if computed digits exceeds boundary for amount of
+					// digits we want to calculate. There's something we want to
+					// actually do!
+					if len(digitsCalculated.String()) >= digits {
+						io.WriteString(w, fmt.Sprintf("CHECK 3 FROM %d", offset))
+					}
+				} else {
+					// Otherwise, focus on computation
+					io.WriteString(w, fmt.Sprintf("COMP %d OFFSET %d", digits, offset))
+					offset += 20
+				}
+			} else {
+				// Compute 20 digits of some number
+				io.WriteString(w, fmt.Sprintf("COMP %d OFFSET %d", digits, offset))
+				offset += 20
+			}
 			break
 		case 1: // Busy
 			break
@@ -98,9 +151,16 @@ func data(w http.ResponseWriter, r *http.Request) {
 
 		digitsCalculated.WriteString(d_client)
 		io.WriteString(w, "OK")
+	} else if d_type == "check" {
+		// This will return OK if no modification needs to be done.
+		// otherwise, returns the actual changed digits
+		ret := query.Get("return")
+		if ret != "OK" {
+			// Do something... fix the affected digits?
+		}
+		// Otherwise nothing needs to be done
+		log.Printf("\n")
 	}
-
-	fmt.Println(digitsCalculated.String())
 }
 
 func registerClient(w http.ResponseWriter, r *http.Request) {
@@ -130,4 +190,7 @@ func registerClient(w http.ResponseWriter, r *http.Request) {
 	// Make sure client acknowledges.
 	n := fmt.Sprintf("OK %d", len(clients))
 	io.WriteString(w, n)
+
+	// Update based off registered stuff
+	priorityIDs = sortThreadIds()
 }
