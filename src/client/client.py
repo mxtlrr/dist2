@@ -33,7 +33,7 @@ if v[0] != "OK":
   connection.close()
 
 client_id = int(v[1])-1
-print(f"We are client {client_id}")
+print(f"Registered as client {client_id}")
 
 # Set ourselves as ready to recieve
 Client.SetStatus(connection, READY, client_id)
@@ -41,25 +41,37 @@ Client.SetStatus(connection, READY, client_id)
 for i in range(1):
   val = Client.sendReq(connection, "GET", f"/data?client_id={client_id}&type=request").split(" ")
   instruction = val[0]
+  # Set ourselves as busy
+  Client.SetStatus(connection, BUSY, client_id)
+
   match instruction:
     case "COMP":
       dig_count = int(val[1])
       offset    = int(val[3])
-      print(f"Digit count: {dig_count} | Offset: {offset}")
-      # Set ourselves as busy
-      Client.SetStatus(connection, BUSY, client_id)
 
-
-      # Each iteration improves the approximation, roughly doubling the number of correct digits...
-      # it can be modeled with f(x) = 1.2084*(1.8146^x)-1.124, R^2 = 0.9995, so at
-      # accuracy = 25, we'd get ~3.56 million correct digits, though this is just a model to fit the
-      # data, and may not be correct.
-      # To keep up with this, we'll increment one after each iteration
       value = MathFunc.GetOffset(MathFunc.CompSqrt2(accuracy), offset, dig_count)
-      accuracy += 1 # f(26) = ~6,467,132
+      accuracy += 1
 
       zz = Client.sendReq(connection, "GET", f"/data?client_id={client_id}&data={str(value)}&type=data")
       Client.SetStatus(connection, READY, client_id)
+    case "CHECK":
+      offset     = int(val[3])
+      submitted  = val[5]
+
+      accuracy *= 2 # Increase accuracy to actually get a potentially
+      # better result
+
+      value = MathFunc.GetOffset(MathFunc.CompSqrt2(accuracy), offset, 3)
+      if submitted != value:
+        # Let's send the full 20 digits.
+        value = MathFunc.GetOffset(MathFunc.CompSqrt2(accuracy), offset, 20)
+        zz = Client.sendReq(connection, "GET", f"/data?client_id={client_id}&type=check&return={value}")
+      else:
+        zz = Client.sendReq(connection, "GET", f"/data?client_id={client_id}&type=check&return=OK")
+        Client.SetStatus(connection, READY, client_id)
+
+      # Reset accuracy.
+      accuracy /= 2
 
 
 connection.close()

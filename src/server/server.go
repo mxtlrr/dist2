@@ -129,7 +129,10 @@ func data(w http.ResponseWriter, r *http.Request) {
 					// digits we want to calculate. There's something we want to
 					// actually do!
 					if len(digitsCalculated.String()) >= digits {
-						io.WriteString(w, fmt.Sprintf("CHECK 3 FROM %d", offset))
+						// We also want to submit the digits to calculate
+						last20 := digitsCalculated.String()[len(digitsCalculated.String())-20:]
+						io.WriteString(w, fmt.Sprintf("CHECK 3 FROM %d SUBMITTED %s", offset,
+							last20))
 					}
 				} else {
 					// Otherwise, focus on computation
@@ -156,7 +159,12 @@ func data(w http.ResponseWriter, r *http.Request) {
 		// otherwise, returns the actual changed digits
 		ret := query.Get("return")
 		if ret != "OK" {
-			// Do something... fix the affected digits?
+			// Update fixed digits.
+			// The client sends us back all 20 recalculated digits with correct
+			// accuracy.
+			str := digitsCalculated.String()[:len(digitsCalculated.String())-20]
+			digitsCalculated.Reset()
+			digitsCalculated.WriteString(str)
 		}
 		// Otherwise nothing needs to be done
 		log.Printf("\n")
