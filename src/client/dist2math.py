@@ -3,6 +3,13 @@ from decimal import Decimal, getcontext
 
 digits = 0
 
+# 620 is 31 iteration
+# (x^3)+25x -- 31 iterations -- 0.43  seconds
+# (x^2)+20x -- 31 iterations -- 0.008 seconds
+def f(x: int) -> int:
+  # it will take 54 iterations to hit 0.43 seconds (0.446)
+  return (x**2)+20*x
+
 class MathFunc:
   def __init__(self) -> None:
     pass
@@ -22,7 +29,7 @@ class MathFunc:
     # Fixes #2 | This is very slow, but does resolve
     # the issue. It takes 31 iterations to take 0.43 seconds
     # to compute. It does grow faster than 20x though.
-    getcontext().prec = (accuracy**3) + 25*accuracy
+    getcontext().prec = f(accuracy)
     a_n = Decimal(2)
     for _ in range(accuracy):
       a_n = (a_n / 2) + (1 / a_n)
