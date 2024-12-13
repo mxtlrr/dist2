@@ -54,10 +54,6 @@ func setstatus(w http.ResponseWriter, r *http.Request) {
 	clients[client_id].status = status
 }
 
-func validateClient(c ClientData, ipAddrPort []string) bool {
-	return c.clientAddress == ipAddrPort[0] && c.clientPort == ipAddrPort[1]
-}
-
 func sortThreadIds() []SortedClientThreads {
 	var z []SortedClientThreads
 
@@ -72,23 +68,22 @@ func sortThreadIds() []SortedClientThreads {
 	return z
 }
 
-/*
-The client will send a variety of messages to the server,
-* telling it if/when it is ready, and data from various tasks.
-* You can read the architecture about it. Once the client
-* configures itself and registers itself on the server, it sends
-* a RDY to the server, i.e.
-
-*  /data?type="RDY", then the server will tell it what to do
-*/
 func data(w http.ResponseWriter, r *http.Request) {
 	// Check if the IP address actually corresponds to a client
 	ipAddrTmp := strings.Split(r.RemoteAddr, ":")
-	for i := range clients {
-		if !validateClient(clients[i], ipAddrTmp) {
-			io.WriteString(w, "Sorry, you aren't registered. Please register yourself before continuing. Goodbye.")
-			return
+	var good bool = false
+	for z := range clients {
+		c := clients[z]
+		if ipAddrTmp[0] == c.clientAddress {
+			if ipAddrTmp[1] == c.clientPort {
+				good = true
+			}
 		}
+	}
+
+	if !good {
+		io.WriteString(w, "Sorry, validation failed!")
+		return
 	}
 
 	log.Println("Incoming data / request from client!")
@@ -193,6 +188,7 @@ func registerClient(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Finished registeration of client. There are now %d clients in the system\n", len(clients))
 	log.Println(z)
+	log.Println(clients)
 
 	// Make sure client acknowledges.
 	n := fmt.Sprintf("OK %d", len(clients))
