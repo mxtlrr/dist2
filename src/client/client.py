@@ -1,13 +1,14 @@
 import http.client, subprocess
 from dist2math import MathFunc
 
+MathFunc.SetDigitCount(20)
 
 threads = int(subprocess.check_output(['nproc']).decode('utf-8').replace("\n",""))
 
 # Stuff to send to server to update status
 READY = 0
 BUSY  = 1
-accuracy = 200
+accuracy = 1
 
 status = READY
 
@@ -41,6 +42,8 @@ print(f"Registered as client {client_id}")
 # Set ourselves as ready to recieve
 Client.SetStatus(connection, READY, client_id)
 
+from time import time
+
 while True:
   val = Client.sendReq(connection, "GET", f"/data?client_id={client_id}&type=request").split(" ")
   instruction = val[0]
@@ -54,8 +57,12 @@ while True:
       offset    = int(val[3])
       print(f"digit count: {dig_count} | offset: {offset}")
 
+      start = time()
+
       value = MathFunc.GetOffset(MathFunc.CompSqrt2(accuracy), offset, dig_count)
-      print(value)
+      
+      print(f"Elapsed time: {time()-start}")
+      # print(value)
       accuracy += 1
 
       zz = Client.sendReq(connection, "GET", f"/data?client_id={client_id}&data={str(value)}&type=data")
