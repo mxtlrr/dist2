@@ -144,7 +144,6 @@ func data(w http.ResponseWriter, r *http.Request) {
 				io.WriteString(w, fmt.Sprintf("COMP %d OFFSET %d", digits, offset))
 				offset += 20
 			}
-			break
 		case 1: // Busy
 			break
 		}
