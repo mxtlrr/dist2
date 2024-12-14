@@ -23,5 +23,12 @@ class MathFunc:
       a_n = next_a_n
     return a_n
   
-  def GetActual(off: int, digits: int) -> int:
-    return MathFunc.GetOffset(MathFunc.CompSqrt2(off+digits), off, digits)
+  def GetActual(off: int, digits: int) -> str:
+    # Computation truncates the first digit if it's a zero.
+    # so having it be an integer will remove it.
+    t = str(MathFunc.GetOffset(MathFunc.CompSqrt2(off+digits), off, digits))
+    
+    # Fixes #3
+    if len(t) == 19:
+      return "0"+nn
+    return nn
