@@ -7,8 +7,11 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"time"
 	"strconv"
 	"strings"
+
+	"github.com/mxtlrr/dist2/src/server/tdc"
 )
 
 type ClientData struct {
@@ -20,16 +23,23 @@ type ClientData struct {
 }
 
 const (
-	digits int = 20
+	digits              int = 20
+	MAX_DIGITS_COMPRESS int = 1000 // How many digits before compression?
 )
 
 var (
-	clients          []ClientData
-	offset           int64 = 0 // Integer offset for computation of digits
-	totalComputed    int64 = 0
-	shouldRun        bool = true
-	CSVVals          []CSVValue
-	outFile          *os.File
+	clients       []ClientData
+	offset        int64 = 0 // Integer offset for computation of digits
+	totalComputed int64 = 0
+	shouldRun     bool  = true
+	toCompress    bool  = false // If we compute over some number, then we should
+	// compress to save space.
+	CSVVals []CSVValue
+	
+	outFile *os.File
+	cT string  // Start time.
+	eT string  // End time
+	started bool = false
 )
 
 func main() {
@@ -42,7 +52,11 @@ func main() {
 	}
 
 	CSVVals = parseCSV(string(csvValTmp))
-	log.Printf("Computing %s digits.", CSVVals[0].value)
+	digitsCom, _ := strconv.Atoi(CSVVals[0].value)
+	log.Printf("Computing %d digits.", digitsCom)
+	if (digitsCom) > MAX_DIGITS_COMPRESS {
+		toCompress = true
+	}
 
 	outFile, err = os.OpenFile(CSVVals[2].value, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
@@ -59,12 +73,18 @@ func main() {
 	log.Println("Server running on port 8080")
 	go http.ListenAndServe(":8080", nil) // Run in seperate thread so we can do stuff.
 
+	// Just wait.
 	for shouldRun {
-		// Just wait.
+		continue
 	}
 
 	// Save file
 	log.Printf("Saving to %s\n", CSVVals[2].value)
+
+	outFile.WriteString(fmt.Sprintf("\n\nComputation started at: %s\nComputation ended at: %s\n\nDist2 v0.0.1\n", cT, eT))
+	if toCompress {
+		outFile.WriteString("The digits are compressed to save space. Use util/decode to decode the value.\n")
+	}
 }
 
 func setstatus(w http.ResponseWriter, r *http.Request) {
@@ -128,8 +148,15 @@ func data(w http.ResponseWriter, r *http.Request) {
 		log.Printf("got some data from client %d", client_id)
 
 		// Write the digits to the file
-		if _, err := outFile.WriteString(d_client); err != nil {
-			panic(err)
+		if !toCompress {
+			if _, err := outFile.WriteString(d_client); err != nil {
+				panic(err)
+			}
+		} else {
+			n := tdc.TDCEncodeString(d_client)
+			if _, err := outFile.Write(n); err != nil {
+				panic(err)
+			}
 		}
 		totalComputed += 20
 		io.WriteString(w, "OK")
@@ -138,6 +165,7 @@ func data(w http.ResponseWriter, r *http.Request) {
 	// If we've reached the limit, stop executing
 	jz, _ := strconv.Atoi(CSVVals[0].value)
 	if totalComputed >= int64(jz) {
+		eT = time.Now().Format("Jan 2, 2006 15:04:05")
 		shouldRun = false
 	}
 }
@@ -170,7 +198,15 @@ func registerClient(w http.ResponseWriter, r *http.Request) {
 	// Make sure client acknowledges.
 	n := fmt.Sprintf("OK %d", len(clients))
 	io.WriteString(w, n)
+
+	if len(clients) == 1 && !started {
+		cT = time.Now().Format("Jan 2, 2006 15:04:05")
+		started = true
+	}
 }
+
+
+
 
 // CSV stuff. To little code to put it in its own thing.
 // Maybe i'll do that at some point
