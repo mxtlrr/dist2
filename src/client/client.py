@@ -65,24 +65,6 @@ while True:
 
       zz = Client.sendReq(connection, "GET", f"/data?client_id={client_id}&data={str(value)}&type=data")
       Client.SetStatus(connection, READY, client_id)
-    case "CHECK":
-      offset     = int(val[3])
-      submitted  = val[5]
-
-      accuracy *= 2 # Increase accuracy to actually get a potentially
-      # better result
-
-      value = MathFunc.GetOffset(MathFunc.CompSqrt2(accuracy), offset, 3)
-      if submitted != value:
-        # Let's send the full 20 digits.
-        value = MathFunc.GetOffset(MathFunc.CompSqrt2(accuracy), offset, 20)
-        zz = Client.sendReq(connection, "GET", f"/data?client_id={client_id}&type=check&return={value}")
-      else:
-        zz = Client.sendReq(connection, "GET", f"/data?client_id={client_id}&type=check&return=OK")
-      Client.SetStatus(connection, READY, client_id)
-
-      # Reset accuracy.
-      accuracy /= 2
 
     # Handle issues from server
     case "Sorry,":
