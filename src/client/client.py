@@ -1,8 +1,6 @@
 import http.client, subprocess
 from dist2math import MathFunc
 
-MathFunc.SetDigitCount(20)
-
 threads = int(subprocess.check_output(['nproc']).decode('utf-8').replace("\n",""))
 
 # Stuff to send to server to update status
@@ -59,7 +57,7 @@ while True:
 
       start = time()
 
-      value = MathFunc.GetOffset(MathFunc.CompSqrt2(accuracy), offset, dig_count)
+      value = MathFunc.GetActual(offset, dig_count) #MathFunc.GetOffset(MathFunc.CompSqrt2(accuracy), offset, dig_count)
       
       print(f"Elapsed time: {time()-start}")
       # print(value)
