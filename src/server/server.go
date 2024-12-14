@@ -6,8 +6,10 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type ClientData struct {
@@ -24,18 +26,47 @@ const (
 
 var (
 	clients          []ClientData
-	offset           int64 // Integer offset for computation of digits
+	offset           int64 = 0 // Integer offset for computation of digits
 	digitsCalculated strings.Builder
+	shouldRun        bool = true
+	CSVVals          []CSVValue
 )
 
 func main() {
+	log.Println("Welcome to dist2. Parsing csv...")
+
+	// Parse CSV
+	csvValTmp, err := os.ReadFile("config.csv")
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	CSVVals = parseCSV(string(csvValTmp))
+	log.Printf("Computing %s digits then quitting!", CSVVals[0].value)
+
 	// Handlers
 	http.HandleFunc("/register", registerClient) // Client needds to register itself to prevent unauthorized access
 	http.HandleFunc("/data", data)               // Recieving data from the client
 	http.HandleFunc("/setstatus", setstatus)
 
 	log.Println("Server running on port 8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	go http.ListenAndServe(":8080", nil) // Run in seperate thread so we can do stuff.
+
+	for shouldRun {
+		// Just wait.
+	}
+
+	// Save file
+	log.Printf("Saving to %s\n", CSVVals[2].value)
+
+	f, err := os.Open(CSVVals[2].value)
+	if err != nil {
+		// Creat the file if it doesnt exist
+		f, _ = os.Create(CSVVals[2].value)
+	}
+
+	f.WriteString(fmt.Sprintf("Dist2 v0.0.1 -- File written on %s\n", time.Now().Format("Jan 2, 2006 15:04:05")))
+	f.WriteString(digitsCalculated.String())
 }
 
 func setstatus(w http.ResponseWriter, r *http.Request) {
@@ -101,6 +132,12 @@ func data(w http.ResponseWriter, r *http.Request) {
 		digitsCalculated.WriteString(d_client)
 		io.WriteString(w, "OK")
 	}
+
+	// If we've reached the limit, stop executing
+	jz, _ := strconv.Atoi(CSVVals[0].value)
+	if digitsCalculated.Len() >= jz {
+		shouldRun = false
+	}
 }
 
 func registerClient(w http.ResponseWriter, r *http.Request) {
@@ -131,4 +168,24 @@ func registerClient(w http.ResponseWriter, r *http.Request) {
 	// Make sure client acknowledges.
 	n := fmt.Sprintf("OK %d", len(clients))
 	io.WriteString(w, n)
+}
+
+// CSV stuff. To little code to put it in its own thing.
+// Maybe i'll do that at some point
+type CSVValue struct {
+	column string
+	value  string
+}
+
+func parseCSV(text string) []CSVValue {
+	var j []CSVValue
+	lines := strings.Split(text, "\n")
+
+	columns := strings.Split(lines[0], ",")
+	values := strings.Split(lines[1], ",")
+
+	for value := range values {
+		j = append(j, CSVValue{columns[value], values[value]})
+	}
+	return j
 }

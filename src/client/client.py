@@ -64,7 +64,11 @@ while True:
       accuracy += 1
 
       zz = Client.sendReq(connection, "GET", f"/data?client_id={client_id}&data={str(value)}&type=data")
-      Client.SetStatus(connection, READY, client_id)
+      try:
+        Client.SetStatus(connection, READY, client_id)
+      except ConnectionResetError:
+        print("Server terminated. All digits calculated successfully. Goodbye.")
+        break
 
     # Handle issues from server
     case "Sorry,":

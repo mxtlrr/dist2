@@ -1,0 +1,2 @@
+limit_digits,debug_output,output_file
+500,true,digits.txt
