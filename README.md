@@ -5,9 +5,7 @@ Parallelized computation of digits from $\sqrt{2}$
 Due to dist2 being parallelized and having to be connected to a server
 to get/perform calculations, all that dist2 collects is:
 - Your IP address (to send/recieve information)
-- Processor information
-    - Threads
-    - The CPU you're using
+- Processor information (amount of threads)
 
 That's all, nothing more, nothing less. Unfortunately, there is no way to
 get around this. dist2 needs to know your CPU/threads amount to allocate
@@ -32,7 +30,29 @@ The client is written in Python. Just run `python client.py`.
 **WARNING**: Linux only
 
 # Usage
+
+## Client
 TODO
+
+## Server
+As of right now, the client runs on port 8080 on localhost, which is what the client connects to. You'll
+have to do slight configuration: dist2 uses a [csv file](./src/server/config.csv) for configuration (it's
+easier than ini)
+
+You'll need this to be in the current directory with the server binary, and you can tweak a few options:
+| Option | What it Does | Does it Currently Have an Effect? |
+| -|-|-|
+| `limit_digits` | Limits the digits to compute before exiting | Yes |
+| `debug_output` | Toggles output of logging when developing   | No  |
+| `output_file`  | Where will dist2 write the digits?          | Yes |
+
+You'll need to modify/tweak `limit_digits` and `output_file` to the desired digit count/file. Then, you
+can just run `./server`, if all goes well, you should see something similar in your terminal:
+```
+2024/12/14 10:18:20 Welcome to dist2. Parsing csv...
+2024/12/14 10:18:20 Computing 500 digits.
+2024/12/14 10:18:20 Server running on port 8080
+```
 
 # Records
 TODO
@@ -53,28 +73,24 @@ You can view the diagram in the [`arch`](./arch/graph.md) directory
 
 ## Architecture Implementation Roadmap
 - [X] Send information to server about client information
-- [X] Server acknowledges and waits for client to be ready to send info
+- [ ] Server acknowledges and waits for client to be ready to send info
 	- [X] Tells the client to compute $n$ digits at offset $o$.
+        - [ ] If a client has more threads, then make it compute more digits than other
+        clients.
 	- [ ] Prioritizes clients with more than $j$ threads
 	- [X] Client can both
 		- [X] Compute $\sqrt{2}$ with decent precision, enough for what
 		- [X] Send the data back to the server, which stores it.
-- [X] Implement checking
-	- [X] Server-side signal
-	- [X] Client-side
-- [ ] Optional stuff
-	- [ ] Send a terminate signal to all clients once a desired precision
+- [ ] Implement checking
+	- [ ] Server-side signal
+	- [ ] Client-side
+- [X] Optional stuff
+	- [X] Send a terminate signal to all clients once a desired precision
 is wanted
 
 ## General Roadmap
 - [ ] Implement the entire architecture
-- [ ] Add customization
-	- [ ] Client (autoconnect)
-	- [ ] Server (specific port to open, max precision, etc)
-- [ ] Potentially rewrite the client in a non-interpreted language.
-	- Top choices are Golang and C++.
-	- Unless Python doesn't perform moderately fast, then this is
-	unnecessary
+- [ ] Implement things from [the technological wishlist](./WISHLIST.md)
 
 ## Notes
 1. "Weaker" clients mean that they don't have as much computing power. If client $A$ has 4 threads, and client $B$ has
