@@ -9,7 +9,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
 )
 
 type ClientData struct {
@@ -27,9 +26,10 @@ const (
 var (
 	clients          []ClientData
 	offset           int64 = 0 // Integer offset for computation of digits
-	digitsCalculated strings.Builder
+	totalComputed    int64 = 0
 	shouldRun        bool = true
 	CSVVals          []CSVValue
+	outFile          *os.File
 )
 
 func main() {
@@ -42,7 +42,14 @@ func main() {
 	}
 
 	CSVVals = parseCSV(string(csvValTmp))
-	log.Printf("Computing %s digits then quitting!", CSVVals[0].value)
+	log.Printf("Computing %s digits.", CSVVals[0].value)
+
+	outFile, err = os.OpenFile(CSVVals[2].value, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	if err != nil {
+		panic(err)
+	}
+
+	defer outFile.Close()
 
 	// Handlers
 	http.HandleFunc("/register", registerClient) // Client needds to register itself to prevent unauthorized access
@@ -58,15 +65,6 @@ func main() {
 
 	// Save file
 	log.Printf("Saving to %s\n", CSVVals[2].value)
-
-	f, err := os.Open(CSVVals[2].value)
-	if err != nil {
-		// Creat the file if it doesnt exist
-		f, _ = os.Create(CSVVals[2].value)
-	}
-
-	f.WriteString(fmt.Sprintf("Dist2 v0.0.1 -- File written on %s\n", time.Now().Format("Jan 2, 2006 15:04:05")))
-	f.WriteString(digitsCalculated.String())
 }
 
 func setstatus(w http.ResponseWriter, r *http.Request) {
@@ -129,13 +127,17 @@ func data(w http.ResponseWriter, r *http.Request) {
 		d_client := query.Get("data")
 		log.Printf("got some data from client %d", client_id)
 
-		digitsCalculated.WriteString(d_client)
+		// Write the digits to the file
+		if _, err := outFile.WriteString(d_client); err != nil {
+			panic(err)
+		}
+		totalComputed += 20
 		io.WriteString(w, "OK")
 	}
 
 	// If we've reached the limit, stop executing
 	jz, _ := strconv.Atoi(CSVVals[0].value)
-	if digitsCalculated.Len() >= jz {
+	if totalComputed >= int64(jz) {
 		shouldRun = false
 	}
 }

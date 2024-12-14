@@ -30,5 +30,5 @@ class MathFunc:
     
     # Fixes #3
     if len(t) == 19:
-      return "0"+nn
-    return nn
+      return "0"+t
+    return t
