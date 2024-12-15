@@ -43,7 +43,12 @@ Client.SetStatus(connection, READY, client_id)
 from time import time
 
 while True:
-  val = Client.sendReq(connection, "GET", f"/data?client_id={client_id}&type=request").split(" ")
+  try:
+    val = Client.sendReq(connection, "GET", f"/data?client_id={client_id}&type=request").split(" ")
+  except http.client.RemoteDisconnected:
+    print("Server stopped runnig, either digits needed are done,")
+    print("or there was some form of power failure. Goodbye.")
+    break
   instruction = val[0]
   # Set ourselves as busy
   Client.SetStatus(connection, BUSY, client_id)
@@ -63,7 +68,11 @@ while True:
       # print(value)
       accuracy += 1
 
-      zz = Client.sendReq(connection, "GET", f"/data?client_id={client_id}&data={str(value)}&type=data")
+      try:
+        zz = Client.sendReq(connection, "GET", f"/data?client_id={client_id}&data={str(value)}&type=data")
+      except http.client.RemoteDisconnected:
+          print("Server terminated. Goodbye")
+          break
       try:
         Client.SetStatus(connection, READY, client_id)
       except ConnectionResetError:
@@ -77,7 +86,7 @@ while True:
       print("at <https://github.com/mxtlrr/dist2/issues>.\n\nExiting.")
       break
 
-  __import__("time").sleep(0.5)
+  __import__("time").sleep(0.01)
   print(f"Status: {status}")
 
 

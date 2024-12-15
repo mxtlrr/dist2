@@ -23,8 +23,8 @@ type ClientData struct {
 }
 
 const (
-	digits              int = 20
-	MAX_DIGITS_COMPRESS int = 1000 // How many digits before compression?
+	digits              int   = 20
+	MAX_DIGITS_COMPRESS int   = (1<<31)-1 // How many digits before compression?
 )
 
 var (
