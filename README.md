@@ -55,7 +55,12 @@ can just run `./server`, if all goes well, you should see something similar in y
 ```
 
 # Records
-TODO
+| Digit Count | Time Taken | Number of Clients | Date |
+| ----------- | ---------- | ----------------- | ---- |
+| 10,000      | 17 seconds | 2   | 14 December 2024   |
+
+To submit records, use the issues, and attach the `digits.txt` file
+generated.
 
 # Architecture
 1. Upon starting a client, the client sends information about itself.
