@@ -39,25 +39,16 @@ class ValidationF:
 
     # https://arxiv.org/pdf/2312.15338
     # Adapted for M=2
-    def Spigot(acc: int) -> str:
-        pair = (10, 5)
+    def Spigot(acc: Decimal) -> str:
+        pair = (Decimal(10), Decimal(5))
         for _ in range(acc):
             p=pair[0];q=pair[1]
             pair = (p-q,q+10) if p>=q else (100*p, (10*q)-45)
         return str(pair[1])[1:]
 
     # Produces a number that is known to calculate correct digits.
-    def Accuracy(dig: int) -> float:
-        return (((2000*(dig+3)) - 3088.28)/377)
+    def Accuracy(dig: int) -> Decimal:
+        return Decimal((((2000*(dig+3)) - 3088.28)/377))
 
     def Offset(s: str, o: int, n: int) -> str:
         return s[o:n]
-
-"""
-To compute 25 digits of sqrt(2), it took
-Newton's method:            0.00007200241 seconds
-The spigot (ValidationF):   0.00005578994 seconds
-
-0.00002 seconds faster.
-"""
-
