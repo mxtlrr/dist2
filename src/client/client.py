@@ -86,7 +86,6 @@ while True:
       print("at <https://github.com/mxtlrr/dist2/issues>.\n\nExiting.")
       break
 
-  __import__("time").sleep(0.01)
   print(f"Status: {status}")
 
 

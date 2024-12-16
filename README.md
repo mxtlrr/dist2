@@ -57,7 +57,7 @@ can just run `./server`, if all goes well, you should see something similar in y
 # Records
 | Digit Count | Time Taken | Number of Clients | Date |
 | ----------- | ---------- | ----------------- | ---- |
-| 10,000      | 17 seconds | 2   | 14 December 2024   |
+| 10,000      | 7  seconds | 2   | 15 December 2024   |
 
 To submit records, use the issues, and attach the `digits.txt` file
 generated.
