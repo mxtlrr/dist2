@@ -1,7 +1,12 @@
-import http.client, subprocess
+import http.client, subprocess, platform
 from dist2math import MathFunc
 
-threads = int(subprocess.check_output(['nproc']).decode('utf-8').replace("\n",""))
+threads = 0
+match platform.system():
+  case "Windows":
+    threads = int(__import__("os").environ["NUMBER_OF_PROCESSORS"])
+  case "Linux":
+    threads = int(subprocess.check_output(['nproc']).decode('utf-8').replace("\n",""))
 
 # Stuff to send to server to update status
 READY = 0

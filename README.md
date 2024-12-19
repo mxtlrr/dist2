@@ -27,8 +27,6 @@ go build server/server.go
 ## Client
 The client is written in Python. Just run `python client.py`.
 
-**WARNING**: Linux only
-
 # Usage
 
 ## Client
