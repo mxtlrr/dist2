@@ -77,7 +77,7 @@ while True:
       accuracy += 1
 
       try:
-        zz = Client.sendReq(connection, "GET", f"/data?client_id={client_id}&data={str(value)}&type=data")
+        zz = Client.sendReq(connection, "GET", f"/data?client_id={client_id}&data={str(value)}&type=data&timing={time()-start}")
       except http.client.RemoteDisconnected:
           print("Server terminated. Goodbye")
           break

@@ -23,19 +23,23 @@ type ClientData struct {
 }
 
 const (
-	digits              int = 20
 	MAX_DIGITS_COMPRESS int = (1 << 31) - 1 // How many digits before compression?
 )
 
 var (
 	clients       []ClientData
-	offset        int64 = 0 // Integer offset for computation of digits
-	totalComputed int64 = 0
-	shouldRun     bool  = true
-	toCompress    bool  = false // If we compute over some number, then we should
+	toCompress    bool    = false // If we compute over some number, then we should
+	shouldRun     bool    = true
+	average       float64 = 0.0
+	digits        int     = 20
+	clientCount   int     = 0
+	offset        int64   = 0 // Integer offset for computation of digits
+	totalComputed int64   = 0
+
 	// compress to save space.
 	CSVVals []CSVValue
 
+	// Timing and other things
 	outFile *os.File
 	cT      string // Start time.
 	cTime   time.Time
@@ -131,6 +135,12 @@ func data(w http.ResponseWriter, r *http.Request) {
 		switch clients[client_id].status {
 		// Ready
 		case 0:
+			// If it took us less than 5 ms to compute, do nothing. Otherwise,
+			// double digit count. We'll end up writing a multithreaded thing
+			// for this in the client.
+			if average <= 0.005 {
+				// digits *= 2
+			}
 			// Offsetted?
 			for n := range clients {
 				if n+1 != len(clients) {
@@ -142,14 +152,26 @@ func data(w http.ResponseWriter, r *http.Request) {
 					}
 				}
 			}
-			// Compute 20 digits of some number
+
 			io.WriteString(w, fmt.Sprintf("COMP %d OFFSET %d MAX %d", digits, offset, jz))
-			offset += 20
+			offset += int64(digits)
 			clients[client_id].currentOffset = offset
 		}
 	} else if d_type == "data" {
 		d_client := query.Get("data")
+
+		// I think?
+		kl, _ := strconv.ParseFloat(query.Get("timing"), 64)
+		if clientCount < len(clients) {
+			average += kl
+			clientCount += 1
+		} else {
+			average = kl / float64((len(clients)))
+			clientCount = 0
+		}
+
 		log.Printf("got some data from client %d", client_id)
+		log.Printf("Average timing for clients is %.6f", average)
 
 		// Write the digits to the file
 		if !toCompress {
@@ -162,7 +184,7 @@ func data(w http.ResponseWriter, r *http.Request) {
 				panic(err)
 			}
 		}
-		totalComputed += 20
+		totalComputed += int64(digits)
 		io.WriteString(w, "OK")
 	}
 
