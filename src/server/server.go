@@ -31,7 +31,7 @@ var (
 	toCompress    bool    = false // If we compute over some number, then we should
 	shouldRun     bool    = true
 	average       float64 = 0.0
-	digits        int     = 20
+	digits        int     = 100
 	clientCount   int     = 0
 	offset        int64   = 0 // Integer offset for computation of digits
 	totalComputed int64   = 0

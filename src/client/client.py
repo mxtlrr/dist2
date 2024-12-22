@@ -1,6 +1,9 @@
 import http.client, subprocess, platform
 from dist2math import MathFunc
 
+# See https://stackoverflow.com/a/44793537, https://docs.python.org/3/library/threading.html (first paragraph)
+from multiprocessing import Process, Pool
+
 threads = 0
 match platform.system():
   case "Windows":
@@ -14,6 +17,11 @@ BUSY  = 1
 accuracy = 1
 
 status = READY
+
+# How many digits until we split up the workload to multiple threads?
+# TODO: put this in a configuration file.
+DIGITS_BEFORE_SEP = 1000
+
 
 class Client:
   def __init__(self):
@@ -51,7 +59,7 @@ while True:
   try:
     val = Client.sendReq(connection, "GET", f"/data?client_id={client_id}&type=request").split(" ")
   except http.client.RemoteDisconnected:
-    print("Server stopped runnig, either digits needed are done,")
+    print("Server stopped running, either digits needed are done,")
     print("or there was some form of power failure. Goodbye.")
     break
   instruction = val[0]
@@ -69,18 +77,34 @@ while True:
       start = time()
       if offset > max_digits:
         break
+      
+      value = 0
+      if dig_count > DIGITS_BEFORE_SEP:
+        # How many times do we want to seperate into?
+        nT = 0
+        if threads > 2:
+          nT = threads//3
+        else:
+          nT = 2
+        print(f"Splitting into {nT} different workers.")
+
+        task = [(offset+(i * dig_count//nT), dig_count//nT) for i in range(nT)]
+        print(task)
+        with Pool(processes=nT) as p:
+          r = p.starmap(MathFunc.GetActual, task)
+          # Concatenate the two, then send it back
+          value = ''.join(r)
       else:
-        value = MathFunc.GetActual(offset, dig_count) #MathFunc.GetOffset(MathFunc.CompSqrt2(accuracy), offset, dig_count)
+        value = MathFunc.GetActual(offset, dig_count)
       
       print(f"Elapsed time: {time()-start}")
-      # print(value)
       accuracy += 1
 
       try:
         zz = Client.sendReq(connection, "GET", f"/data?client_id={client_id}&data={str(value)}&type=data&timing={time()-start}")
       except http.client.RemoteDisconnected:
-          print("Server terminated. Goodbye")
-          break
+        print("Server terminated. Goodbye")
+        break
       try:
         Client.SetStatus(connection, READY, client_id)
       except ConnectionResetError:
@@ -93,8 +117,5 @@ while True:
       print("Either retry or if this is reoccuring, open an issue on GitHub")
       print("at <https://github.com/mxtlrr/dist2/issues>.\n\nExiting.")
       break
-
   print(f"Status: {status}")
-
-
 connection.close()
