@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"time"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/mxtlrr/dist2/src/server/tdc"
 )
@@ -23,8 +23,8 @@ type ClientData struct {
 }
 
 const (
-	digits              int   = 20
-	MAX_DIGITS_COMPRESS int   = (1<<31)-1 // How many digits before compression?
+	digits              int = 20
+	MAX_DIGITS_COMPRESS int = (1 << 31) - 1 // How many digits before compression?
 )
 
 var (
@@ -35,11 +35,11 @@ var (
 	toCompress    bool  = false // If we compute over some number, then we should
 	// compress to save space.
 	CSVVals []CSVValue
-	
+
 	outFile *os.File
-	cT string  // Start time.
-	eT string  // End time
-	started bool = false
+	cT      string // Start time.
+	eT      string // End time
+	started bool   = false
 )
 
 func main() {
@@ -123,6 +123,7 @@ func data(w http.ResponseWriter, r *http.Request) {
 
 	// TODO: do something with type given to server.
 
+	jz, _ := strconv.Atoi(CSVVals[0].value)
 	if d_type == "request" {
 		switch clients[client_id].status {
 		// Ready
@@ -139,7 +140,7 @@ func data(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 			// Compute 20 digits of some number
-			io.WriteString(w, fmt.Sprintf("COMP %d OFFSET %d", digits, offset))
+			io.WriteString(w, fmt.Sprintf("COMP %d OFFSET %d MAX %d", digits, offset, jz))
 			offset += 20
 			clients[client_id].currentOffset = offset
 		}
@@ -163,7 +164,6 @@ func data(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// If we've reached the limit, stop executing
-	jz, _ := strconv.Atoi(CSVVals[0].value)
 	if totalComputed >= int64(jz) {
 		eT = time.Now().Format("Jan 2, 2006 15:04:05")
 		shouldRun = false
@@ -204,9 +204,6 @@ func registerClient(w http.ResponseWriter, r *http.Request) {
 		started = true
 	}
 }
-
-
-
 
 // CSV stuff. To little code to put it in its own thing.
 // Maybe i'll do that at some point

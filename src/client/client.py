@@ -61,13 +61,16 @@ while True:
   print(instruction)
   match instruction:
     case "COMP":
-      dig_count = int(val[1])
-      offset    = int(val[3])
+      dig_count  = int(val[1])
+      offset     = int(val[3])
+      max_digits = int(val[5])
       print(f"digit count: {dig_count} | offset: {offset}")
 
       start = time()
-
-      value = MathFunc.GetActual(offset, dig_count) #MathFunc.GetOffset(MathFunc.CompSqrt2(accuracy), offset, dig_count)
+      if offset > max_digits:
+        break
+      else:
+        value = MathFunc.GetActual(offset, dig_count) #MathFunc.GetOffset(MathFunc.CompSqrt2(accuracy), offset, dig_count)
       
       print(f"Elapsed time: {time()-start}")
       # print(value)
