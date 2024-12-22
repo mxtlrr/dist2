@@ -38,6 +38,8 @@ var (
 
 	outFile *os.File
 	cT      string // Start time.
+	cTime   time.Time
+	eTime   time.Time
 	eT      string // End time
 	started bool   = false
 )
@@ -81,7 +83,8 @@ func main() {
 	// Save file
 	log.Printf("Saving to %s\n", CSVVals[2].value)
 
-	outFile.WriteString(fmt.Sprintf("\n\nComputation started at: %s\nComputation ended at: %s\n\nDist2 v0.0.1\n", cT, eT))
+	outFile.WriteString(fmt.Sprintf("\n\nComputation started at: %s\nComputation ended   at: %s\n", cT, eT))
+	outFile.WriteString(fmt.Sprintf("Duration:                            %s\n\nDist2 v0.0.1\n", time.Time{}.Add(eTime.Sub(cTime)).Format("15:04:05.000")))
 	if toCompress {
 		outFile.WriteString("The digits are compressed to save space. Use util/decode to decode the value.\n")
 	}
@@ -165,7 +168,8 @@ func data(w http.ResponseWriter, r *http.Request) {
 
 	// If we've reached the limit, stop executing
 	if totalComputed >= int64(jz) {
-		eT = time.Now().Format("Jan 2, 2006 15:04:05")
+		eTime = time.Now()
+		eT = eTime.Format("Jan 02, 2006 15:04:05.000")
 		shouldRun = false
 	}
 }
@@ -200,7 +204,8 @@ func registerClient(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, n)
 
 	if len(clients) == 1 && !started {
-		cT = time.Now().Format("Jan 2, 2006 15:04:05")
+		cTime = time.Now()
+		cT = cTime.Format("Jan 2, 2006 15:04:05.000")
 		started = true
 	}
 }
