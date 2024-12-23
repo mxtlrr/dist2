@@ -52,3 +52,12 @@ class ValidationF:
 
     def Offset(s: str, o: int, n: int) -> str:
         return s[o:n]
+
+    def Check(newton: str, off: int, n=3) -> bool:
+        digits = len(newton)
+        z = ValidationF.Offset(ValidationF.Spigot(ceil(
+                ValidationF.Accuracy(digits+5))), off, digits)
+        last = z[len(z)-n:]
+        if newton[digits-n:] == last:
+            return True
+        return False
