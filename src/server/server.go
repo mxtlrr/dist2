@@ -139,7 +139,7 @@ func data(w http.ResponseWriter, r *http.Request) {
 			// double digit count. We'll end up writing a multithreaded thing
 			// for this in the client.
 			if average <= 0.005 {
-				// digits *= 2
+				digits *= 2
 			}
 			// Offsetted?
 			for n := range clients {
