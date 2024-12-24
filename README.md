@@ -37,15 +37,9 @@ As of right now, the client runs on port 8080 on localhost, which is what the cl
 have to do slight configuration: dist2 uses a [csv file](./src/server/config.csv) for configuration (it's
 easier than ini)
 
-You'll need this to be in the current directory with the server binary, and you can tweak a few options:
-| Option | What it Does | Does it Currently Have an Effect? |
-| -|-|-|
-| `limit_digits` | Limits the digits to compute before exiting | Yes |
-| `debug_output` | Toggles output of logging when developing   | No  |
-| `output_file`  | Where will dist2 write the digits?          | Yes |
-
-You'll need to modify/tweak `limit_digits` and `output_file` to the desired digit count/file. Then, you
-can just run `./server`, if all goes well, you should see something similar in your terminal:
+This needs to be in the same folder as the binary of the server. Currently, there are only two values you need
+to modify: `limit_digits` and `output_file`. It is self explanatory. Once you launch, if all goes well, you should see
+something similar in your terminal:
 ```
 2024/12/14 10:18:20 Welcome to dist2. Parsing csv...
 2024/12/14 10:18:20 Computing 500 digits.
@@ -57,7 +51,7 @@ can just run `./server`, if all goes well, you should see something similar in y
 | ----------- | ---------- | ----------------- | ---- |
 | 10,000      | 7  seconds | 2   | 15 December 2024   |
 
-To submit records, use the issues, and attach the `digits.txt` file
+To submit records, use the issues tab with the 'record' tag, and attach the `digits.txt` file
 generated.
 
 # Architecture
