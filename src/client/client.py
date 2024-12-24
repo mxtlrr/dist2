@@ -1,5 +1,5 @@
 import http.client, subprocess, platform
-from dist2math import MathFunc
+from dist2math import MathFunc, ValidationF
 
 # See https://stackoverflow.com/a/44793537, https://docs.python.org/3/library/threading.html (first paragraph)
 from multiprocessing import Process, Pool
@@ -117,5 +117,19 @@ while True:
       print("Either retry or if this is reoccuring, open an issue on GitHub")
       print("at <https://github.com/mxtlrr/dist2/issues>.\n\nExiting.")
       break
+    
+    case "CHECK":
+      print(val)
+      digits = val[1]
+      newton = val[3]
+      offset = int(val[5])
+      kz: tuple = ValidationF.Check(newton, offset)
+      if kz[1] == True:
+        Client.sendReq(connection, "GET", f"/data?client_id={client_id}&type=check&ret_val=OK&digs=0")
+      else:
+        Client.sendReq(connection, "GET", f"/data?client_id={client_id}&type=check&ret_val=BAD&digs={kz[0]}")
+    case _:
+      break
+  print(val)
   print(f"Status: {status}")
 connection.close()

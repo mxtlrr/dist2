@@ -1,6 +1,7 @@
 from math import floor, ceil
 from decimal import Decimal, getcontext
 
+
 class MathFunc:
   def __init__(self) -> None:
     pass
@@ -33,31 +34,32 @@ class MathFunc:
       return "0"+t
     return t
 
+NEW_OFFSET = 50
 class ValidationF:
     def __init__(self) -> None:
-        pass
+      pass
 
     # https://arxiv.org/pdf/2312.15338
     # Adapted for M=2
     def Spigot(acc: Decimal) -> str:
-        pair = (Decimal(10), Decimal(5))
-        for _ in range(acc):
-            p=pair[0];q=pair[1]
-            pair = (p-q,q+10) if p>=q else (100*p, (10*q)-45)
-        return str(pair[1])[1:]
+      pair = (Decimal(10), Decimal(5))
+      for _ in range(acc):
+        p=pair[0];q=pair[1]
+        pair = (p-q,q+10) if p>=q else (100*p, (10*q)-45)
+      return str(pair[1])[1:]
 
     # Produces a number that is known to calculate correct digits.
     def Accuracy(dig: int) -> Decimal:
-        return Decimal((((2000*(dig+3)) - 3088.28)/377))
+      return Decimal((((2000*(dig+3)) - 3088.28)/377))
 
     def Offset(s: str, o: int, n: int) -> str:
-        return s[o:n]
+      return s[o+1:n+1]
 
-    def Check(newton: str, off: int, n=3) -> bool:
-        digits = len(newton)
-        z = ValidationF.Offset(ValidationF.Spigot(ceil(
-                ValidationF.Accuracy(digits+5))), off, digits)
-        last = z[len(z)-n:]
-        if newton[digits-n:] == last:
-            return True
-        return False
+    def Check(newton: str, off: int, n=3) -> tuple:
+      digits = len(newton)
+      z = ValidationF.Offset(ValidationF.Spigot(ceil(
+              ValidationF.Accuracy(digits+NEW_OFFSET))), off, digits)
+      last = z[len(z)-n:]
+      if newton[digits-n:] == last:
+        return ("", True)
+      return (last, False)

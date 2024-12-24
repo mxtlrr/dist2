@@ -23,7 +23,9 @@ type ClientData struct {
 }
 
 const (
-	MAX_DIGITS_COMPRESS int = (1 << 31) - 1 // How many digits before compression?
+	MAX_DIGITS_COMPRESS int  = (1 << 31) - 1 // How many digits before compression?
+	MAX_SIZE            int  = 1000          // Max size of the "validSave" string.
+	MIN_THREADS         int8 = 2             // Anything leq this will focus on checking.
 )
 
 var (
@@ -46,6 +48,10 @@ var (
 	eTime   time.Time
 	eT      string // End time
 	started bool   = false
+
+	// Validation stuff
+	validSave      strings.Builder
+	alreadyChecked int64 = 0
 )
 
 func main() {
@@ -128,64 +134,92 @@ func data(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(query)
 	log.Printf("Got \"%s\" as the type.", d_type)
 
-	// TODO: do something with type given to server.
-
 	jz, _ := strconv.Atoi(CSVVals[0].value)
 	if d_type == "request" {
 		switch clients[client_id].status {
 		// Ready
 		case 0:
-			// If it took us less than 5 ms to compute, do nothing. Otherwise,
-			// double digit count. We'll end up writing a multithreaded thing
-			// for this in the client.
-			if average <= 0.005 {
-				digits *= 2
-			}
-			// Offsetted?
-			for n := range clients {
-				if n+1 != len(clients) {
-					// Fix bug where clients would be desynchronized and compute
-					// over and over again
-					if clients[n+1].currentOffset < clients[n].currentOffset {
-						fmt.Println("Uh-oh! bad thing happen.")
-						clients[n+1].currentOffset += int64(digits) * int64(len(clients))
+			// for debugging/development/testing comment out the "len(clients) > 2 &&" clause.
+			// TODO: this code is BUGGED TO HELL! i'm so tired of this.
+			// i hate this code but i don't know how to fix it. ideally i want it to check
+			// the digits it sends ONCE!
+			if len(clients) > 2 && clients[client_id].threadCount <= int(MIN_THREADS) &&
+				totalComputed >= 40 && (totalComputed != alreadyChecked) {
+				fmt.Println(totalComputed, alreadyChecked)
+				// TODO: offset-int64 is stupid probably and may not work.
+				io.WriteString(w, fmt.Sprintf("CHECK %d STUFF %s OFFSET %d",
+					digits, validSave.String(), offset-int64(digits)))
+				alreadyChecked = totalComputed
+			} else {
+				// If it took us less than 5 ms to compute, do nothing. Otherwise,
+				// double digit count. We'll end up writing a multithreaded thing
+				// for this in the client.
+				if average <= 0.005 {
+					digits *= 2
+				}
+				// Offsetted?
+				for n := range clients {
+					if n+1 != len(clients) {
+						// Fix bug where clients would be desynchronized and compute
+						// over and over again
+						if clients[n+1].currentOffset < clients[n].currentOffset {
+							clients[n+1].currentOffset += int64(digits) * int64(len(clients))
+						}
 					}
 				}
-			}
 
-			io.WriteString(w, fmt.Sprintf("COMP %d OFFSET %d MAX %d", digits, offset, jz))
-			offset += int64(digits)
-			clients[client_id].currentOffset = offset
+				io.WriteString(w, fmt.Sprintf("COMP %d OFFSET %d MAX %d", digits, offset, jz))
+				offset += int64(digits)
+				clients[client_id].currentOffset = offset
+			}
 		}
 	} else if d_type == "data" {
-		d_client := query.Get("data")
-
-		// I think?
-		kl, _ := strconv.ParseFloat(query.Get("timing"), 64)
-		if clientCount < len(clients) {
-			average += kl
-			clientCount += 1
-		} else {
-			average = kl / float64((len(clients)))
-			clientCount = 0
-		}
-
-		log.Printf("got some data from client %d", client_id)
-		log.Printf("Average timing for clients is %.6f", average)
-
-		// Write the digits to the file
-		if !toCompress {
-			if _, err := outFile.WriteString(d_client); err != nil {
-				panic(err)
+		switch d_type {
+		case "check":
+			// If false, we want to somehow modify the file data with it.
+			resultting := query.Get("ret_val")
+			vaf := query.Get("digs") // Set to 0 if resultting == OK
+			log.Printf("CHECK RESULT: resultting: %s | digits: %s", resultting, vaf)
+			if resultting != "OK" && vaf != "0" {
+				// TODO: Do something... digs is the "corrected" digits.
+				// The plan is to find and replace the digits in the file since
+				// it writes before we're able to check
+				os.Exit(1)
 			}
-		} else {
-			n := tdc.TDCEncodeString(d_client)
-			if _, err := outFile.Write(n); err != nil {
-				panic(err)
+		case "data":
+			d_client := query.Get("data")
+			kl, _ := strconv.ParseFloat(query.Get("timing"), 64)
+			if clientCount < len(clients) {
+				average += kl
+				clientCount += 1
+			} else {
+				average = kl / float64((len(clients)))
+				clientCount = 0
 			}
+
+			log.Printf("got some data from client %d", client_id)
+			log.Printf("Average timing for clients is %.6f", average)
+
+			// Write the digits to the file
+			if !(validSave.Len()+len(d_client) > MAX_SIZE) {
+				validSave.WriteString(d_client)
+			} else {
+				// Otherwise, just clear it.
+				validSave.Reset()
+			}
+			if !toCompress {
+				if _, err := outFile.WriteString(d_client); err != nil {
+					panic(err)
+				}
+			} else {
+				n := tdc.TDCEncodeString(d_client)
+				if _, err := outFile.Write(n); err != nil {
+					panic(err)
+				}
+			}
+			totalComputed += int64(digits)
+			io.WriteString(w, "OK")
 		}
-		totalComputed += int64(digits)
-		io.WriteString(w, "OK")
 	}
 
 	// If we've reached the limit, stop executing
