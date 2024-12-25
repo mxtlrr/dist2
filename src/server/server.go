@@ -32,6 +32,7 @@ var (
 	clients       []ClientData
 	toCompress    bool    = false // If we compute over some number, then we should
 	shouldRun     bool    = true
+	shouldCompute bool    = true
 	average       float64 = 0.0
 	digits        int     = 100
 	clientCount   int     = 0
@@ -46,12 +47,13 @@ var (
 	cT      string // Start time.
 	cTime   time.Time
 	eTime   time.Time
+	chTime  time.Time
 	eT      string // End time
 	started bool   = false
 
-	// Validation stuff
-	validSave      strings.Builder
-	alreadyChecked int64 = 0
+	// Checking stuff
+	digits_for_check   int = 100 // check 100 digits at a time
+	offset_digit_check int = 0
 )
 
 func main() {
@@ -94,6 +96,7 @@ func main() {
 	log.Printf("Saving to %s\n", CSVVals[2].value)
 
 	outFile.WriteString(fmt.Sprintf("\n\nComputation started at: %s\nComputation ended   at: %s\n", cT, eT))
+	outFile.WriteString(fmt.Sprintf("Validation of %s digits time:        %s\n", CSVVals[0].value, time.Time{}.Add(chTime.Sub(eTime)).Format("15:04:05.000")))
 	outFile.WriteString(fmt.Sprintf("Duration:                            %s\n\nDist2 v0.0.1\n", time.Time{}.Add(eTime.Sub(cTime)).Format("15:04:05.000")))
 	if toCompress {
 		outFile.WriteString("The digits are compressed to save space. Use util/decode to decode the value.\n")
@@ -139,18 +142,7 @@ func data(w http.ResponseWriter, r *http.Request) {
 		switch clients[client_id].status {
 		// Ready
 		case 0:
-			// for debugging/development/testing comment out the "len(clients) > 2 &&" clause.
-			// TODO: this code is BUGGED TO HELL! i'm so tired of this.
-			// i hate this code but i don't know how to fix it. ideally i want it to check
-			// the digits it sends ONCE!
-			if len(clients) > 2 && clients[client_id].threadCount <= int(MIN_THREADS) &&
-				totalComputed >= 40 && (totalComputed != alreadyChecked) {
-				fmt.Println(totalComputed, alreadyChecked)
-				// TODO: offset-int64 is stupid probably and may not work.
-				io.WriteString(w, fmt.Sprintf("CHECK %d STUFF %s OFFSET %d",
-					digits, validSave.String(), offset-int64(digits)))
-				alreadyChecked = totalComputed
-			} else {
+			if shouldCompute {
 				// If it took us less than 5 ms to compute, do nothing. Otherwise,
 				// double digit count. We'll end up writing a multithreaded thing
 				// for this in the client.
@@ -171,22 +163,34 @@ func data(w http.ResponseWriter, r *http.Request) {
 				io.WriteString(w, fmt.Sprintf("COMP %d OFFSET %d MAX %d", digits, offset, jz))
 				offset += int64(digits)
 				clients[client_id].currentOffset = offset
+			} else { // All clients start now computing
+				// Open the file
+				file, err := os.Open(CSVVals[2].value)
+				if err != nil {
+					panic(err)
+				}
+
+				// Seek to the desired offset
+				_, err = file.Seek(int64(offset_digit_check), io.SeekStart)
+				if err != nil {
+					panic(err)
+				}
+				// Read `n` bytes
+				buf := make([]byte, digits_for_check)
+				if _, e := file.Read(buf); e != nil {
+					panic(e)
+				}
+				value := string(buf[:])
+				io.WriteString(w, fmt.Sprintf("CHECK %d OFFSET %d STUFF %s", digits_for_check, offset_digit_check, value))
+				offset_digit_check += digits_for_check
+				file.Close()
 			}
 		}
 	} else if d_type == "data" {
-		switch d_type {
-		case "check":
-			// If false, we want to somehow modify the file data with it.
-			resultting := query.Get("ret_val")
-			vaf := query.Get("digs") // Set to 0 if resultting == OK
-			log.Printf("CHECK RESULT: resultting: %s | digits: %s", resultting, vaf)
-			if resultting != "OK" && vaf != "0" {
-				// TODO: Do something... digs is the "corrected" digits.
-				// The plan is to find and replace the digits in the file since
-				// it writes before we're able to check
-				os.Exit(1)
-			}
-		case "data":
+		typeComp := query.Get("type")
+		switch typeComp {
+
+		case "comp":
 			d_client := query.Get("data")
 			kl, _ := strconv.ParseFloat(query.Get("timing"), 64)
 			if clientCount < len(clients) {
@@ -200,13 +204,6 @@ func data(w http.ResponseWriter, r *http.Request) {
 			log.Printf("got some data from client %d", client_id)
 			log.Printf("Average timing for clients is %.6f", average)
 
-			// Write the digits to the file
-			if !(validSave.Len()+len(d_client) > MAX_SIZE) {
-				validSave.WriteString(d_client)
-			} else {
-				// Otherwise, just clear it.
-				validSave.Reset()
-			}
 			if !toCompress {
 				if _, err := outFile.WriteString(d_client); err != nil {
 					panic(err)
@@ -222,10 +219,16 @@ func data(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// If we've reached the limit, stop executing
+	// If we've reached the limit, stop computing
+	// and start
 	if totalComputed >= int64(jz) {
 		eTime = time.Now()
 		eT = eTime.Format("Jan 02, 2006 15:04:05.000")
+		shouldCompute = false
+	}
+
+	if !shouldCompute && offset_digit_check >= jz {
+		chTime = time.Now()
 		shouldRun = false
 	}
 }
