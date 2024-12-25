@@ -49,6 +49,7 @@ var (
 	cT      string // Start time.
 	cTime   time.Time
 	eTime   time.Time
+	vaTime  time.Time
 	eT      string // End time
 	started bool   = false
 
@@ -105,9 +106,14 @@ func main() {
 	newFile2, _ := os.OpenFile(CSVVals[2].value, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 	newFile2.WriteString(fmt.Sprintf("\n\nComputation started at: %s\nComputation ended   at: %s\n", cT, eT))
 	newFile2.WriteString(fmt.Sprintf("Computation duration:                %s\n", time.Time{}.Add(eTime.Sub(cTime)).Format("15:04:05.000")))
-	newFile2.WriteString(fmt.Sprintf("Validation finished at:              %s\n\n", time.Now().Format("Jan 02, 2006 15:04:05.000")))
+
+	newFile2.WriteString(fmt.Sprintf("Validation finished at: %s\n",
+			vaTime.Format("Jan 02, 2006 15:04:05.000")))
+	newFile2.WriteString(fmt.Sprintf("Time taken for validation:           %s\n\n",
+		 time.Time{}.Add(vaTime.Sub(eTime)).Format("15:04:05.000")))
 	newFile2.WriteString(fmt.Sprintf("Total invalid digits: %d\n", total))
-	newFile2.WriteString(fmt.Sprintf("Percentage (wrong):   %.3f%%\n\n\nDist2 v0.0.1", (float32(total)/float32(digitsCom))*100))
+	newFile2.WriteString(fmt.Sprintf("Percentage (wrong):   %.3f%%\n\n\nDist2 v0.0.1\n",
+			(float32(total)/float32(digitsCom))*100))
 	if toCompress {
 		newFile2.WriteString("The digits are compressed to save space. Use util/decode to decode the value.\n")
 	}
@@ -244,13 +250,14 @@ func data(w http.ResponseWriter, r *http.Request) {
 
 	// If we've reached the limit, stop computing
 	// and start
-	if totalComputed >= int64(jz) {
+	if totalComputed >= int64(jz) && shouldCompute == true {
 		eTime = time.Now()
 		eT = eTime.Format("Jan 02, 2006 15:04:05.000")
 		shouldCompute = false
 	}
 
 	if !shouldCompute && offset_digit_check >= jz {
+		vaTime = time.Now()
 		shouldRun = false
 	}
 }
