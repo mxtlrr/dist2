@@ -1,4 +1,4 @@
-import http.client, subprocess, platform
+import http.client, subprocess, platform, time
 from dist2math import MathFunc, ValidationF
 from cfg import *
 
@@ -42,20 +42,27 @@ class Client:
 print(f"Reading configuration file...", end="")
 INIParser.ParseINIFile("config.ini")
 
-port = INIParser.GetINIKey("port")
-svip = INIParser.GetINIKey("svip")
+port    = INIParser.GetINIKey("port")
+svip    = INIParser.GetINIKey("svip")
+retries = int(INIParser.GetINIKey("retries"))
 
-print(f"done!\nConnecting to server at {svip}:{port}...", end="")
+print(f"done!\nConnecting to server at {svip}:{port}...")
 
-connection = http.client.HTTPConnection("127.0.0.1", 8080, timeout=10)
+connection = http.client.HTTPConnection(svip, port, timeout=10)
 # register ourselves.
 
 v = ""
-try:
-    v = Client.sendReq(connection, "GET", f"/register?threads={threads}").split(" ")
-except:
-    print("failure!")
-    exit(2)
+
+for i in range(retries):
+    try:
+        connection = http.client.HTTPConnection(svip, port, timeout=10)
+        v = Client.sendReq(connection, "GET", f"/register?threads={threads}").split(" ")
+    except:
+        print(f"Failed. Attempt {i} of {retries-1}")
+        if i == retries-1:
+            print("Max retries exceeded. Quitting.")
+            exit(2)
+        time.sleep(2.5)
 if v[0] != "OK":
   print("Failure registering to dist2 server!")
   connection.close()
@@ -88,8 +95,8 @@ while True:
       print(f"digit count: {dig_count} | offset: {offset}")
 
       start = time()
-      if offset > max_digits:
-        break
+#      if offset > max_digits:
+#        break
       
       value = 0
       if dig_count > DIGITS_BEFORE_SEP:
