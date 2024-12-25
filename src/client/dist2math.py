@@ -36,30 +36,41 @@ class MathFunc:
 
 NEW_OFFSET = 50
 class ValidationF:
-    def __init__(self) -> None:
-      pass
+  def __init__(self) -> None:
+    pass
 
-    # https://arxiv.org/pdf/2312.15338
-    # Adapted for M=2
-    def Spigot(acc: Decimal) -> str:
-      pair = (Decimal(10), Decimal(5))
-      for _ in range(acc):
+  # This returns a number that DOES provide the amount of correct digits,
+  # not necessarily being the lower bound, but also not necessarily being
+  # the upper bound.
+  def CalcAccuracy(dig: int) -> Decimal:
+    return Decimal( (((2000*(dig+3)) - 3088.28)/377))
+    #return (((2000*(dig+3)) - 3088.28)/377)
+
+  # Correct digits for X accuracy:
+  # f(x) = 0.344262x^(0.878332) if x > 10
+  # Source: https://arxiv.org/pdf/2312.15338
+  def R(acc: Decimal) -> str:
+    getcontext().prec = acc + 30 # Update accuracy
+    pair = (Decimal(10), Decimal(5))
+    for _ in range(acc):
         p=pair[0];q=pair[1]
         pair = (p-q,q+10) if p>=q else (100*p, (10*q)-45)
-      return str(pair[1])[1:]
+    return str(pair[1])[1:]
 
-    # Produces a number that is known to calculate correct digits.
-    def Accuracy(dig: int) -> Decimal:
-      return Decimal((((2000*(dig+3)) - 3088.28)/377))
+  def New(s,o,n):
+    return s[o:n]
 
-    def Offset(s: str, o: int, n: int) -> str:
-      return s[o+1:n+1]
-
-    def Check(newton: str, off: int, n=3) -> tuple:
-      digits = len(newton)
-      z = ValidationF.Offset(ValidationF.Spigot(ceil(
-              ValidationF.Accuracy(digits+NEW_OFFSET))), off, digits)
-      last = z[len(z)-n:]
-      if newton[digits-n:] == last:
-        return ("", True)
-      return (last, False)
+  # offset is the start of the newton string. n is the
+  # amount of digits to check.
+  def Validate(newton: str, off: int, n=3) -> tuple:
+    digits = len(newton)
+    z = ValidationF.New(ValidationF.R(ceil(
+            ValidationF.CalcAccuracy(digits+NEW_OFFSET))), off, digits)
+    print(z)
+    last = z[len(z)-n:]
+    print(f"newton: {newton} | last: {last}")
+    if len(newton) != len(z):
+      exit(2)
+    if newton[digits-n:] == last:
+      return ("", True)
+    return (last, False)

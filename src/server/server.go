@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -54,6 +56,7 @@ var (
 	// Checking stuff
 	digits_for_check   int = 100 // check 100 digits at a time
 	offset_digit_check int = 0
+	total              int = 0 // Total things changed
 )
 
 func main() {
@@ -95,12 +98,19 @@ func main() {
 	// Save file
 	log.Printf("Saving to %s\n", CSVVals[2].value)
 
-	outFile.WriteString(fmt.Sprintf("\n\nComputation started at: %s\nComputation ended   at: %s\n", cT, eT))
-	outFile.WriteString(fmt.Sprintf("Validation of %s digits time:        %s\n", CSVVals[0].value, time.Time{}.Add(chTime.Sub(eTime)).Format("15:04:05.000")))
-	outFile.WriteString(fmt.Sprintf("Duration:                            %s\n\nDist2 v0.0.1\n", time.Time{}.Add(eTime.Sub(cTime)).Format("15:04:05.000")))
+	outFile.Close()
+
+	// This is the dumbest shit ever. I don't know but it doesn't work if I use outFile. Good enough for now.
+	newFileFuckYou, _ := os.OpenFile(CSVVals[2].value, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	newFileFuckYou.WriteString(fmt.Sprintf("\n\nComputation started at: %s\nComputation ended   at: %s\n", cT, eT))
+	newFileFuckYou.WriteString(fmt.Sprintf("Validation of %s digits time:       %s\n", CSVVals[0].value, time.Time{}.Add(chTime.Sub(eTime)).Format("15:04:05.000")))
+	newFileFuckYou.WriteString(fmt.Sprintf("Computation duration:                %s\n\nDist2 v0.0.1\n", time.Time{}.Add(eTime.Sub(cTime)).Format("15:04:05.000")))
+	newFileFuckYou.WriteString(fmt.Sprintf("Total invalid digits: %d\n", total))
+	newFileFuckYou.WriteString(fmt.Sprintf("Percentage (wrong):   %.3f%%\n", (float32(total)/float32(digitsCom))*100))
 	if toCompress {
-		outFile.WriteString("The digits are compressed to save space. Use util/decode to decode the value.\n")
+		newFileFuckYou.WriteString("The digits are compressed to save space. Use util/decode to decode the value.\n")
 	}
+	newFileFuckYou.Close()
 }
 
 func setstatus(w http.ResponseWriter, r *http.Request) {
@@ -163,7 +173,7 @@ func data(w http.ResponseWriter, r *http.Request) {
 				io.WriteString(w, fmt.Sprintf("COMP %d OFFSET %d MAX %d", digits, offset, jz))
 				offset += int64(digits)
 				clients[client_id].currentOffset = offset
-			} else { // All clients start now computing
+			} else { // All clients start now checking
 				// Open the file
 				file, err := os.Open(CSVVals[2].value)
 				if err != nil {
@@ -181,16 +191,16 @@ func data(w http.ResponseWriter, r *http.Request) {
 					panic(e)
 				}
 				value := string(buf[:])
+				fmt.Printf("FUCK YOU!!!!: %d\n", offset_digit_check)
 				io.WriteString(w, fmt.Sprintf("CHECK %d OFFSET %d STUFF %s", digits_for_check, offset_digit_check, value))
 				offset_digit_check += digits_for_check
-				file.Close()
+				fmt.Printf("FUCK YOU!!!!: %d\n", offset_digit_check)
+				file.Close() // prevent any memory leaks
 			}
 		}
 	} else if d_type == "data" {
-		typeComp := query.Get("type")
-		switch typeComp {
-
-		case "comp":
+		vaC := query.Get("typeOfData")
+		if vaC == "comp" {
 			d_client := query.Get("data")
 			kl, _ := strconv.ParseFloat(query.Get("timing"), 64)
 			if clientCount < len(clients) {
@@ -216,6 +226,19 @@ func data(w http.ResponseWriter, r *http.Request) {
 			}
 			totalComputed += int64(digits)
 			io.WriteString(w, "OK")
+		} else {
+			var (
+				digits   string = query.Get("digs")
+				retVal   string = query.Get("ret_val")
+				original string = query.Get("originalData")
+			)
+			if retVal == "BAD" {
+				e := replaceInFile(CSVVals[2].value, original, digits)
+				if e != nil {
+					log.Fatal(e)
+				}
+				total += digits_for_check
+			}
 		}
 	}
 
@@ -287,4 +310,49 @@ func parseCSV(text string) []CSVValue {
 		j = append(j, CSVValue{columns[value], values[value]})
 	}
 	return j
+}
+
+func replaceInFile(fileName, searchPattern, replacePattern string) error {
+	tempFileName := fileName + ".tmp"
+
+	sourceFile, err := os.Open(fileName)
+	if err != nil {
+		return fmt.Errorf("failed to open source file '%s': %w", fileName, err)
+	}
+	defer sourceFile.Close()
+
+	tempFile, err := os.Create(tempFileName)
+	if err != nil {
+		return fmt.Errorf("failed to create temporary file: %w", err)
+	}
+	defer tempFile.Close()
+
+	reader := bufio.NewReader(sourceFile)
+	writer := bufio.NewWriter(tempFile)
+
+	pattern := []byte(searchPattern)
+	replacement := []byte(replacePattern)
+
+	for {
+		chunk, err := reader.ReadBytes('\n') // Process line-by-line
+		if err != nil && len(chunk) == 0 {   // End of file or error
+			break
+		}
+
+		modifiedChunk := bytes.ReplaceAll(chunk, pattern, replacement)
+
+		if _, writeErr := writer.Write(modifiedChunk); writeErr != nil {
+			return fmt.Errorf("failed to write to temporary file: %w", writeErr)
+		}
+	}
+
+	if err := writer.Flush(); err != nil {
+		return fmt.Errorf("failed to flush writer: %w", err)
+	}
+
+	if err := os.Rename(tempFileName, fileName); err != nil {
+		return fmt.Errorf("failed to replace the original file: %w", err)
+	}
+
+	return nil
 }

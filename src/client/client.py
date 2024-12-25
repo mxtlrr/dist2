@@ -101,7 +101,7 @@ while True:
       accuracy += 1
 
       try:
-        zz = Client.sendReq(connection, "GET", f"/data?client_id={client_id}&data={str(value)}&type=data&timing={time()-start}")
+        zz = Client.sendReq(connection, "GET", f"/data?client_id={client_id}&data={str(value)}&type=data&typeOfData=comp&timing={time()-start}")
       except http.client.RemoteDisconnected:
         print("Server terminated. Goodbye")
         break
@@ -119,17 +119,19 @@ while True:
       break
     
     case "CHECK":
+      Client.SetStatus(connection, BUSY, client_id)
       print(val)
       digits = val[1]
-      newton = val[3]
-      offset = int(val[5])
-      kz: tuple = ValidationF.Check(newton, offset)
+      newton = val[5]
+      offset = int(val[3])
+      kz: tuple = ValidationF.Validate(newton, offset)
       if kz[1] == True:
-        Client.sendReq(connection, "GET", f"/data?client_id={client_id}&type=check&ret_val=OK&digs=0")
+        Client.sendReq(connection, "GET", f"/data?client_id={client_id}&type=data&typeOfData=check&ret_val=OK&digs=0")
       else:
-        Client.sendReq(connection, "GET", f"/data?client_id={client_id}&type=check&ret_val=BAD&digs={kz[0]}")
+        Client.sendReq(connection, "GET", f"/data?client_id={client_id}&type=data&typeOfData=check&ret_val=BAD&digs={kz[0]}&originalData={val[3]}")
+      Client.SetStatus(connection, READY, client_id)
     case _:
+      print(val)
       break
   print(val)
-  print(f"Status: {status}")
 connection.close()
