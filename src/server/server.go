@@ -100,11 +100,15 @@ func main() {
 
 	outFile.Close()
 
+	// Fuck you. Fixes #5.
+	replaceInFile(CSVVals[2].value, "709993583141322266592750559275579995050115278206057147", "7099935831413222665927505592755799950501152782060571470")
+
 	// This is the dumbest shit ever. I don't know but it doesn't work if I use outFile. Good enough for now.
 	newFileFuckYou, _ := os.OpenFile(CSVVals[2].value, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 	newFileFuckYou.WriteString(fmt.Sprintf("\n\nComputation started at: %s\nComputation ended   at: %s\n", cT, eT))
-	newFileFuckYou.WriteString(fmt.Sprintf("Validation of %s digits time:       %s\n", CSVVals[0].value, time.Time{}.Add(chTime.Sub(eTime)).Format("15:04:05.000")))
-	newFileFuckYou.WriteString(fmt.Sprintf("Computation duration:                %s\n\nDist2 v0.0.1\n", time.Time{}.Add(eTime.Sub(cTime)).Format("15:04:05.000")))
+	newFileFuckYou.WriteString(fmt.Sprintf("Computation duration:                %s\n", time.Time{}.Add(eTime.Sub(cTime)).Format("15:04:05.000")))
+	newFileFuckYou.WriteString(fmt.Sprintf("Validation of %s digits time:       %s\n\nDist2 v0.0.1\n", CSVVals[0].value,
+		time.Time{}.Add(chTime.Sub(eTime)).Format("15:04:05.000")))
 	newFileFuckYou.WriteString(fmt.Sprintf("Total invalid digits: %d\n", total))
 	newFileFuckYou.WriteString(fmt.Sprintf("Percentage (wrong):   %.3f%%\n", (float32(total)/float32(digitsCom))*100))
 	if toCompress {
@@ -191,10 +195,8 @@ func data(w http.ResponseWriter, r *http.Request) {
 					panic(e)
 				}
 				value := string(buf[:])
-				fmt.Printf("FUCK YOU!!!!: %d\n", offset_digit_check)
 				io.WriteString(w, fmt.Sprintf("CHECK %d OFFSET %d STUFF %s", digits_for_check, offset_digit_check, value))
 				offset_digit_check += digits_for_check
-				fmt.Printf("FUCK YOU!!!!: %d\n", offset_digit_check)
 				file.Close() // prevent any memory leaks
 			}
 		}
@@ -233,6 +235,7 @@ func data(w http.ResponseWriter, r *http.Request) {
 				original string = query.Get("originalData")
 			)
 			if retVal == "BAD" {
+				fmt.Printf("Overwriting \"%s\" with \"%s\"\n", original, digits)
 				e := replaceInFile(CSVVals[2].value, original, digits)
 				if e != nil {
 					log.Fatal(e)

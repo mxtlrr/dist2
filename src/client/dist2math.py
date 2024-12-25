@@ -58,19 +58,15 @@ class ValidationF:
     return str(pair[1])[1:]
 
   def New(s,o,n):
-    return s[o:n]
+    return s[o:o+n]
 
   # offset is the start of the newton string. n is the
   # amount of digits to check.
   def Validate(newton: str, off: int, n=3) -> tuple:
     digits = len(newton)
-    z = ValidationF.New(ValidationF.R(ceil(
-            ValidationF.CalcAccuracy(digits+NEW_OFFSET))), off, digits)
-    print(z)
+    kc = ValidationF.R(ceil(ValidationF.CalcAccuracy(digits+off+NEW_OFFSET)))
+    z = ValidationF.New(kc, off, digits)
     last = z[len(z)-n:]
-    print(f"newton: {newton} | last: {last}")
-    if len(newton) != len(z):
-      exit(2)
     if newton[digits-n:] == last:
       return ("", True)
     return (last, False)
