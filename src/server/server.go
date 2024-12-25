@@ -49,7 +49,6 @@ var (
 	cT      string // Start time.
 	cTime   time.Time
 	eTime   time.Time
-	chTime  time.Time
 	eT      string // End time
 	started bool   = false
 
@@ -100,21 +99,19 @@ func main() {
 
 	outFile.Close()
 
-	// Fuck you. Fixes #5.
+	// Fixes #5.
 	replaceInFile(CSVVals[2].value, "709993583141322266592750559275579995050115278206057147", "7099935831413222665927505592755799950501152782060571470")
 
-	// This is the dumbest shit ever. I don't know but it doesn't work if I use outFile. Good enough for now.
-	newFileFuckYou, _ := os.OpenFile(CSVVals[2].value, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
-	newFileFuckYou.WriteString(fmt.Sprintf("\n\nComputation started at: %s\nComputation ended   at: %s\n", cT, eT))
-	newFileFuckYou.WriteString(fmt.Sprintf("Computation duration:                %s\n", time.Time{}.Add(eTime.Sub(cTime)).Format("15:04:05.000")))
-	newFileFuckYou.WriteString(fmt.Sprintf("Validation of %s digits time:       %s\n\nDist2 v0.0.1\n", CSVVals[0].value,
-		time.Time{}.Add(chTime.Sub(eTime)).Format("15:04:05.000")))
-	newFileFuckYou.WriteString(fmt.Sprintf("Total invalid digits: %d\n", total))
-	newFileFuckYou.WriteString(fmt.Sprintf("Percentage (wrong):   %.3f%%\n", (float32(total)/float32(digitsCom))*100))
+	newFile2, _ := os.OpenFile(CSVVals[2].value, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	newFile2.WriteString(fmt.Sprintf("\n\nComputation started at: %s\nComputation ended   at: %s\n", cT, eT))
+	newFile2.WriteString(fmt.Sprintf("Computation duration:                %s\n", time.Time{}.Add(eTime.Sub(cTime)).Format("15:04:05.000")))
+	newFile2.WriteString(fmt.Sprintf("Validation finished at:              %s\n\n", time.Now().Format("Jan 02, 2006 15:04:05.000")))
+	newFile2.WriteString(fmt.Sprintf("Total invalid digits: %d\n", total))
+	newFile2.WriteString(fmt.Sprintf("Percentage (wrong):   %.3f%%\n\n\nDist2 v0.0.1", (float32(total)/float32(digitsCom))*100))
 	if toCompress {
-		newFileFuckYou.WriteString("The digits are compressed to save space. Use util/decode to decode the value.\n")
+		newFile2.WriteString("The digits are compressed to save space. Use util/decode to decode the value.\n")
 	}
-	newFileFuckYou.Close()
+	newFile2.Close()
 }
 
 func setstatus(w http.ResponseWriter, r *http.Request) {
@@ -254,7 +251,6 @@ func data(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !shouldCompute && offset_digit_check >= jz {
-		chTime = time.Now()
 		shouldRun = false
 	}
 }
