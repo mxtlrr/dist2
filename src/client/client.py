@@ -1,5 +1,6 @@
 import http.client, subprocess, platform
 from dist2math import MathFunc, ValidationF
+from cfg import *
 
 # See https://stackoverflow.com/a/44793537, https://docs.python.org/3/library/threading.html (first paragraph)
 from multiprocessing import Process, Pool
@@ -37,12 +38,24 @@ class Client:
     r.close()
 
 
+# config stuff
+print(f"Reading configuration file...", end="")
+INIParser.ParseINIFile("config.ini")
+
+port = INIParser.GetINIKey("port")
+svip = INIParser.GetINIKey("svip")
+
+print(f"done!\nConnecting to server at {svip}:{port}...", end="")
+
 connection = http.client.HTTPConnection("127.0.0.1", 8080, timeout=10)
-print("Connected to dist2 server...")
-
-
 # register ourselves.
-v = Client.sendReq(connection, "GET", f"/register?threads={threads}").split(" ")
+
+v = ""
+try:
+    v = Client.sendReq(connection, "GET", f"/register?threads={threads}").split(" ")
+except:
+    print("failure!")
+    exit(2)
 if v[0] != "OK":
   print("Failure registering to dist2 server!")
   connection.close()
