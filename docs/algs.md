@@ -1,8 +1,9 @@
 # Algorithms Used In Dist2
 
 ## Algorithm 1: Newton's Method
-This algorithm is used in [y-cruncher](http://www.numberworld.org/y-cruncher/) as well. It is the 'defacto' method of computing square
+This algorithm is used in [y-cruncher](http://www.numberworld.org/y-cruncher/) as well. It is the "defacto" method of computing square
 roots. Essentially, the algorithm consists of a recursive relation:
+
 $$
 x_{n+1} = \frac{1}{2}\left(x_n + \frac{a}{x_n}\right)
 $$
@@ -25,6 +26,7 @@ number to square root.
 
 Convergence is quadratic, however the formula below is accurate for
 giving the amount of terms needed to give a certain amount of precision
+
 $$
 f(x) = \frac{(2000\cdot(x+3))-3088.28}{377}
 $$
