@@ -30,7 +30,16 @@ The client is written in Python. Just run `python client.py`.
 # Usage
 
 ## Client
-TODO
+The client uses an INI file for locating where the server is. The INI file
+looks like this:
+```ini
+[config]
+svip = '127.0.0.1'
+port = 8080
+```
+
+Modify these as you wish and then run the client. It will fail if the server
+is not running.
 
 ## Server
 As of right now, the client runs on port 8080 on localhost, which is what the client connects to. You'll
@@ -60,13 +69,17 @@ generated.
 message.
 3. Upon the RDY message, the server sends a data packet to the client, to compute $n$ digits at an offset $o$, which starts at 0 digits past the decimal points.
 	- On other clients, it will tell the client to compute $k+n$ digits, aka, computing digits sequentially.
-4. Once computation is completed, the client sends a DONE message. Server
-will acknowledge it and make other, weaker, clients validate the computed value
-	- This is simply checking the first two digits of the computed amount by recomputation
-	- If something goes wrong, i.e. discrepancy, then the client recomputes the value and sends it back, with a FIXCOMP message.
-5. After all clients send a FIXCOMP message, the server combines the results and the cycle repeats.
+4. Once computation is completed, the client sends a DONE message. 
+5. This process repeats until all digits have been computed. Once that's
+done, all clients go into validaton mode.
+6. Validation mode essentially consists of going through the file again and
+checking each section of digits against a different algorithm, and replacing
+the invalid digits in the file if needed.
+7. Step 6 goes through over all digits in the file. Once that's done the
+server exits.
 
-You can view the diagram in the [`arch`](./arch/graph.md) directory
+You can view the diagram in the [documentation](./docs/graph.md) directory.
+Additionally, in the same directory is an [explanation of how the algorithms work](./docs/algs.md).
 
 ## Architecture Implementation Roadmap
 - [X] Send information to server about client information
@@ -78,9 +91,9 @@ You can view the diagram in the [`arch`](./arch/graph.md) directory
 	- [X] Client can both
 		- [X] Compute $\sqrt{2}$ with decent precision, enough for what
 		- [X] Send the data back to the server, which stores it.
-- [ ] Implement checking
-	- [ ] Server-side signal
-	- [ ] Client-side
+- [X] Implement checking
+	- [X] Server-side signal
+	- [X] Client-side
 - [X] Optional stuff
 	- [X] Send a terminate signal to all clients once a desired precision
 is wanted
