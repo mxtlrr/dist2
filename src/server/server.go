@@ -122,7 +122,7 @@ func main() {
 	newFile2.WriteString(fmt.Sprintf("Time taken for validation:           %s (%.4f digits/second)\n\n",
 		 f2.Format("15:04:05.000"), (float32(digitsCom)/float32(milliseconds))*1000))
 	newFile2.WriteString(fmt.Sprintf("Total invalid digits: %d\n", total))
-	newFile2.WriteString(fmt.Sprintf("Percentage (wrong):   %.3f%%\n\n\nDist2 v0.0.1\n",
+	newFile2.WriteString(fmt.Sprintf("Percentage (wrong):   %.3f%%\n\n\nDist2 v0.0.2\n",
 			(float32(total)/float32(digitsCom))*100))
 	if toCompress {
 		newFile2.WriteString("The digits are compressed to save space. Use util/decode to decode the value.\n")
