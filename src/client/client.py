@@ -45,6 +45,7 @@ INIParser.ParseINIFile("config.ini")
 port    = INIParser.GetINIKey("port")
 svip    = INIParser.GetINIKey("svip")
 retries = int(INIParser.GetINIKey("retries"))
+msc     = int(INIParser.GetINIKey("max_sep"))
 
 print(f"done!\nConnecting to server at {svip}:{port}...")
 
@@ -101,13 +102,8 @@ while True:
       value = 0
       if dig_count > DIGITS_BEFORE_SEP:
         # How many times do we want to seperate into?
-        nT = 0
-        if threads > 2:
-          nT = threads//3
-        else:
-          nT = 2
+        nT = msc
         print(f"Splitting into {nT} different workers.")
-
         task = [(offset+(i * dig_count//nT), dig_count//nT) for i in range(nT)]
         print(task)
         with Pool(processes=nT) as p:
