@@ -105,12 +105,22 @@ func main() {
 
 	newFile2, _ := os.OpenFile(CSVVals[2].value, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 	newFile2.WriteString(fmt.Sprintf("\n\nComputation started at: %s\nComputation ended   at: %s\n", cT, eT))
-	newFile2.WriteString(fmt.Sprintf("Computation duration:                %s\n", time.Time{}.Add(eTime.Sub(cTime)).Format("15:04:05.000")))
+
+	// Time taken
+	f := time.Time{}.Add(eTime.Sub(cTime))
+	midnight := time.Date(f.Year(), f.Month(), f.Day(), 0, 0, 0, 0, f.Location())
+	milliseconds := f.Sub(midnight).Milliseconds()
+	newFile2.WriteString(fmt.Sprintf("Computation duration:                %s (%.4f digits/second)\n",
+			f.Format("15:04:05.000"), (float32(digitsCom)/float32(milliseconds))*1000))
 
 	newFile2.WriteString(fmt.Sprintf("Validation finished at: %s\n",
 			vaTime.Format("Jan 02, 2006 15:04:05.000")))
-	newFile2.WriteString(fmt.Sprintf("Time taken for validation:           %s\n\n",
-		 time.Time{}.Add(vaTime.Sub(eTime)).Format("15:04:05.000")))
+	
+	f2 := time.Time{}.Add(vaTime.Sub(eTime))
+	midnight = time.Date(f2.Year(), f2.Month(), f2.Day(), 0, 0, 0, 0, f.Location())
+	milliseconds = f2.Sub(midnight).Milliseconds()
+	newFile2.WriteString(fmt.Sprintf("Time taken for validation:           %s (%.4f digits/second)\n\n",
+		 f2.Format("15:04:05.000"), (float32(digitsCom)/float32(milliseconds))*1000))
 	newFile2.WriteString(fmt.Sprintf("Total invalid digits: %d\n", total))
 	newFile2.WriteString(fmt.Sprintf("Percentage (wrong):   %.3f%%\n\n\nDist2 v0.0.1\n",
 			(float32(total)/float32(digitsCom))*100))
